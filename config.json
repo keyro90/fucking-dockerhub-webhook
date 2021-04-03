@@ -1,0 +1,10 @@
+{
+  "repos" : [
+    {
+      "name" : "test",
+      "token" : "U8CxqZj3quYYVAnk9xL9jSr2sZNV6VQSSJTWZA5XSzkq5aekLDTHZEW4mLXDmWQcWD3ufCZ8tL8VJxZ8",
+      "script" : "./test.sh",
+      "tags" : ["latest"]
+    }
+  ]
+}
