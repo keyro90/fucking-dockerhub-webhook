@@ -11,7 +11,10 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 )
+
+const ConfigFile = "config.json"
 
 type WebhookRequest struct {
 	CallbackURL string `json:"callback_url"`
@@ -48,6 +51,8 @@ type SingleConf struct{
 }
 
 type AppConfiguration struct{
+	Port int `json:"port"`
+	LogPath string `json:"logPath"`
 	Repos  []SingleConf `json:"repos"`
 }
 
@@ -137,18 +142,21 @@ func post(w http.ResponseWriter, r *http.Request) {
 
 
 func main() {
-	f, err := os.OpenFile("main.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	if _, err := os.Stat(ConfigFile); os.IsNotExist(err) {
+		log.Panic("%s file does not exist.", ConfigFile)
+	}
+	f, err := os.OpenFile(configuration.LogPath+"main.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
 	mw := io.MultiWriter(os.Stdout, f)
 	log.SetOutput(mw)
-	content, err := ioutil.ReadFile("config.json")
+	content, err := ioutil.ReadFile(ConfigFile)
 	if err != nil{
 		log.Panic(err)
 	}
 	_ = json.Unmarshal(content, &configuration)
 	r := mux.NewRouter()
 	r.HandleFunc("/deploy/{token}", post).Methods(http.MethodPost)
-	log.Fatal(http.ListenAndServe(":9001", r))
+	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(configuration.Port), r))
 }
