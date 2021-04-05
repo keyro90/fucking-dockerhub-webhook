@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"sync"
 )
 
 const ConfigFile = "config.json"
@@ -65,6 +66,29 @@ type WebhookResponse struct{
 
 var configuration AppConfiguration
 
+func copyAndCapture(w io.Writer, r io.Reader) ([]byte, error) {
+	var out []byte
+	buf := make([]byte, 1024, 1024)
+	for {
+		n, err := r.Read(buf[:])
+		if n > 0 {
+			d := buf[:n]
+			out = append(out, d...)
+			_, err := w.Write(d)
+			if err != nil {
+				return out, err
+			}
+		}
+		if err != nil {
+			// Read returns io.EOF at the end of file, which is not an error for us
+			if err == io.EOF {
+				err = nil
+			}
+			return out, err
+		}
+	}
+}
+
 func Find(slice []string, val string) (int, bool) {
 	for i, item := range slice {
 		if item == val {
@@ -74,15 +98,59 @@ func Find(slice []string, val string) (int, bool) {
 	return -1, false
 }
 
-func execCommandScriptBash(scriptPath string) (output string, exitCode int){
-	cmd, err := exec.Command("/bin/sh", scriptPath).Output()
-	log.Printf("Executing %s", scriptPath)
-	log.Printf("Result : %s", string(cmd))
-	exitStatus := 0
-	if err != nil{
-		exitStatus = 1
+func execCommandScriptBash(scriptPath string) (string, string){
+	cmd := exec.Command(scriptPath)
+	var stdout, stderr []byte
+	var errStdout, errStderr error
+	stdoutIn, _ := cmd.StdoutPipe()
+	stderrIn, _ := cmd.StderrPipe()
+	err := cmd.Start()
+	if err != nil {
+		log.Fatalf("cmd.Start() failed with '%s'\n", err)
 	}
-	return string(cmd), exitStatus
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		stdout, errStdout = copyAndCapture(os.Stdout, stdoutIn)
+		wg.Done()
+	}()
+
+	stderr, errStderr = copyAndCapture(os.Stderr, stderrIn)
+
+	wg.Wait()
+
+	err = cmd.Wait()
+	if err != nil {
+		log.Fatalf("cmd.Run() failed with %s\n", err)
+	}
+	if errStdout != nil || errStderr != nil {
+		log.Fatal("failed to capture stdout or stderr\n")
+	}
+	outStr, errStr := string(stdout), string(stderr)
+	return outStr, errStr
+	//cmd, err := exec.Run(app, []string{app, "-l"}, nil, "", exec.DevNull, exec.Pipe, exec.Pipe)
+	//cmd := exec.Command(scriptPath)
+	//stdout, err := cmd.StdoutPipe()
+	//
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//if err := cmd.Start(); err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//data, err := ioutil.ReadAll(stdout)
+	//
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//if err := cmd.Wait(); err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//fmt.Printf("%s\n",string(data))
 }
 
 func sendCallback(callbackUrl string, responseToSend WebhookResponse){
