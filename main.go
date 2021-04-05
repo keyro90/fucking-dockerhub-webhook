@@ -127,30 +127,9 @@ func execCommandScriptBash(scriptPath string) (string, string){
 		log.Fatal("failed to capture stdout or stderr\n")
 	}
 	outStr, errStr := string(stdout), string(stderr)
+	log.Printf("STDOUT : %s",outStr)
+	log.Printf("STERR : %s",errStr)
 	return outStr, errStr
-	//cmd, err := exec.Run(app, []string{app, "-l"}, nil, "", exec.DevNull, exec.Pipe, exec.Pipe)
-	//cmd := exec.Command(scriptPath)
-	//stdout, err := cmd.StdoutPipe()
-	//
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//if err := cmd.Start(); err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//data, err := ioutil.ReadAll(stdout)
-	//
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//if err := cmd.Wait(); err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//fmt.Printf("%s\n",string(data))
 }
 
 func sendCallback(callbackUrl string, responseToSend WebhookResponse){
