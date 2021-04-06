@@ -15,7 +15,7 @@ import (
 	"sync"
 )
 
-const ConfigFile = "config.json"
+const ConfigFile = "./config.json"
 
 type WebhookRequest struct {
 	CallbackURL string `json:"callback_url"`
@@ -193,7 +193,7 @@ func main() {
 	if _, err := os.Stat(ConfigFile); os.IsNotExist(err) {
 		log.Panic("%s file does not exist.", ConfigFile)
 	}
-	f, err := os.OpenFile(configuration.LogPath+"main.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	f, err := os.OpenFile(configuration.LogPath+"main.log", os.O_RDWR | os.O_CREATE | os.O_TRUNC, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
@@ -203,9 +203,10 @@ func main() {
 	if err != nil{
 		log.Panic(err)
 	}
+	log.Printf("content conf : %s", content)
 	_ = json.Unmarshal(content, &configuration)
+	log.Printf("Starting server autodeploy %s:%s", configuration.Hostname, strconv.Itoa(configuration.Port))
 	r := mux.NewRouter()
 	r.HandleFunc("/deploy/{token}", post).Methods(http.MethodPost)
-	log.Printf("Starting server autodeploy %s:%d", configuration.Hostname, configuration.Port)
 	log.Fatal(http.ListenAndServe(configuration.Hostname+":"+strconv.Itoa(configuration.Port), r))
 }
