@@ -52,6 +52,7 @@ type SingleConf struct{
 }
 
 type AppConfiguration struct{
+	Hostname string `json:"hostname"`
 	Port int `json:"port"`
 	LogPath string `json:"logPath"`
 	Repos  []SingleConf `json:"repos"`
@@ -205,5 +206,6 @@ func main() {
 	_ = json.Unmarshal(content, &configuration)
 	r := mux.NewRouter()
 	r.HandleFunc("/deploy/{token}", post).Methods(http.MethodPost)
-	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(configuration.Port), r))
+	log.Printf("Starting server autodeploy %s:%d", configuration.Hostname, configuration.Port)
+	log.Fatal(http.ListenAndServe(configuration.Hostname+":"+strconv.Itoa(configuration.Port), r))
 }
